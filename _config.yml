@@ -1,0 +1,14 @@
+# Jekyll Configuration for GitHub Pages
+
+theme: jekyll-theme-minimal
+
+title: EU AI Act Annex IV Toolkit
+description: Complete technical documentation toolkit for Annex IV compliance
+
+author:
+  name: Navin Manaswi
+  email: manaswink@gmail.com
+
+social:
+  linkedin: NavinManaswi
+  github: NavinManaswi
