@@ -1,0 +1,101 @@
+name: Annex IV Documentation Validation
+
+on:
+  push:
+    paths:
+      - 'annex-iv-sections/**'
+      - 'examples/**'
+  pull_request:
+    paths:
+      - 'annex-iv-sections/**'
+      - 'examples/**'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # 1. Set up Python
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # 2. Install dependencies
+      - name: Install dependencies
+        run: |
+          pip install markdown
+
+      # 3. Validate Annex IV sections
+      - name: Validate Annex IV sections
+        run: |
+          python scripts/validate-annex-iv.py annex-iv-sections/
+          if [ $? -ne 0 ]; then
+            echo "❌ Annex IV validation failed"
+            exit 1
+          fi
+
+      # 4. Validate CreditIQ example
+      - name: Validate CreditIQ example
+        run: |
+          if [ -f "examples/creditiq-annex-iv.md" ]; then
+            echo "✅ CreditIQ example exists"
+          else
+            echo "❌ CreditIQ example missing"
+            exit 1
+          fi
+
+      # 5. Check for required sections in example
+      - name: Check example completeness
+        run: |
+          EXAMPLE="examples/creditiq-annex-iv.md"
+          REQUIRED_HEADERS=(
+            "1. System Description"
+            "2. Data Governance"
+            "3. Technical Architecture"
+            "4. Risk Management"
+            "5. Performance Metrics"
+            "6. Human Oversight"
+            "7. Cybersecurity"
+            "8. Post-Market Monitoring"
+            "9. Conformity Assessment"
+          )
+          for header in "${REQUIRED_HEADERS[@]}"; do
+            if grep -q "$header" "$EXAMPLE"; then
+              echo "✅ Found: $header"
+            else
+              echo "❌ Missing: $header"
+              exit 1
+            fi
+          done
+
+      # 6. Generate validation report
+      - name: Generate validation report
+        run: |
+          echo "## Annex IV Validation Report" > validation-report.md
+          echo "" >> validation-report.md
+          echo "| Artifact | Status |" >> validation-report.md
+          echo "|----------|--------|" >> validation-report.md
+          for file in annex-iv-sections/*.md; do
+            if [ -f "$file" ]; then
+              echo "| \`$file\` | ✅ Valid |" >> validation-report.md
+            else
+              echo "| \`$file\` | ❌ Missing |" >> validation-report.md
+            fi
+          done
+          echo "" >> validation-report.md
+          echo "| Example | Status |" >> validation-report.md
+          echo "|---------|--------|" >> validation-report.md
+          if [ -f "examples/creditiq-annex-iv.md" ]; then
+            echo "| CreditIQ | ✅ Complete |" >> validation-report.md
+          else
+            echo "| CreditIQ | ❌ Missing |" >> validation-report.md
+          fi
+
+      # 7. Upload validation report
+      - name: Upload validation report
+        uses: actions/upload-artifact@v4
+        with:
+          name: annex-iv-validation-report
+          path: validation-report.md
